@@ -1,10 +1,16 @@
 # Pé Sujo
 
-Sistema acadêmico de comanda aberta para um boteco brasileiro tradicional.
+Sistema de comanda aberta para um boteco brasileiro tradicional, desenvolvido como monólito simples com Spring Boot e React.
 
-## Descrição
+## Sobre o projeto
 
-O Pé Sujo permite que um atendente visualize mesas, abra uma comanda, adicione itens consumidos, consulte o total e feche a conta. Esta entrega implementa um monólito simples com backend Spring Boot, frontend React e documentação técnica.
+O Pé Sujo ajuda no atendimento de mesas em um pequeno bar. Pela interface, o atendente acompanha o salão, abre uma comanda para uma mesa livre, adiciona produtos consumidos, consulta o total e fecha a conta.
+
+A aplicação foi organizada para a primeira entrega acadêmica do projeto: backend em camadas, API REST, frontend consumindo o backend e documentação técnica.
+
+## Arquitetura
+
+A descrição da arquitetura, dos domínios, dos endpoints e dos diagramas está em [docs/arquitetura.md](docs/arquitetura.md).
 
 ## Tecnologias
 
@@ -19,7 +25,7 @@ O Pé Sujo permite que um atendente visualize mesas, abra uma comanda, adicione 
 - Vite
 - Vitest
 
-## Estrutura
+## Estrutura do repositório
 
 ```text
 Pb_BarPeSujo/
@@ -27,27 +33,50 @@ Pb_BarPeSujo/
   frontend/
   docs/
   README.md
-  .codex/
 ```
 
-## Executar Backend
+## Funcionalidades
+
+- Cadastro, listagem, consulta, atualização e remoção de mesas.
+- Alteração de status de mesa.
+- Cadastro, listagem, consulta, atualização e remoção de produtos.
+- Controle de disponibilidade dos produtos.
+- Abertura de comanda para mesa livre.
+- Adição e remoção de itens da comanda.
+- Cálculo do total da comanda.
+- Fechamento e cancelamento de comanda.
+- Interface React integrada à API REST.
+
+## Regras principais
+
+- Uma mesa não pode ter mais de uma comanda aberta.
+- Uma comanda fechada ou cancelada não recebe novos itens.
+- Produto indisponível não pode ser lançado na comanda.
+- Comanda vazia não pode ser fechada.
+- Ao abrir uma comanda, a mesa fica `OCUPADA`.
+- Ao fechar ou cancelar uma comanda, a mesa volta para `LIVRE`.
+
+## Como executar
+
+### Backend
 
 ```bash
 cd backend
 ./mvnw spring-boot:run
 ```
 
-Backend: `http://localhost:8080`
+Endereços:
 
-H2 Console: `http://localhost:8080/h2-console`
+- API: `http://localhost:8080`
+- H2 Console: `http://localhost:8080/h2-console`
 
-Credenciais H2:
+Credenciais do H2:
 
 - JDBC URL: `jdbc:h2:mem:pesujo`
 - User: `sa`
 - Password: vazio
 
-## Executar Frontend
+### Frontend
 
 ```bash
 cd frontend
@@ -55,9 +84,11 @@ npm install
 npm run dev
 ```
 
-Frontend: `http://localhost:5173`
+Endereço:
 
-## Testes e Build
+- Frontend: `http://localhost:5173`
+
+## Testes
 
 Backend:
 
@@ -71,34 +102,22 @@ Frontend:
 ```bash
 cd frontend
 npm test -- --run
+```
+
+Build do frontend:
+
+```bash
+cd frontend
 npm run build
 ```
 
-## Funcionalidades
-
-- Listar, cadastrar, consultar, atualizar e remover mesas.
-- Alterar status de mesa.
-- Listar, cadastrar, consultar, atualizar e remover produtos.
-- Marcar produtos como disponíveis ou indisponíveis.
-- Abrir comanda para mesa livre.
-- Adicionar e remover itens de comanda.
-- Consultar total da comanda.
-- Fechar ou cancelar comanda.
-- Interface React consumindo a API REST.
-
-## Demonstração
-
-Fluxo demonstrável:
+## Fluxo de demonstração
 
 1. Acessar o frontend.
 2. Visualizar as mesas do salão.
-3. Abrir uma comanda para uma mesa livre.
+3. Selecionar uma mesa livre para abrir uma comanda.
 4. Escolher produtos do cardápio.
 5. Adicionar itens à comanda.
-6. Consultar o total da mesa.
+6. Conferir o total.
 7. Fechar a conta.
 8. Confirmar que a mesa voltou para `LIVRE`.
-
-## Documentação
-
-A documentação arquitetural está em [`docs/arquitetura.md`](docs/arquitetura.md).
