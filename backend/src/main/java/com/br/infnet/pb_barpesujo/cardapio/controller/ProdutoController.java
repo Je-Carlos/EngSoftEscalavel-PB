@@ -7,6 +7,10 @@ import com.br.infnet.pb_barpesujo.cardapio.service.ProdutoService;
 import jakarta.validation.Valid;
 import java.net.URI;
 import java.util.List;
+import com.br.infnet.pb_barpesujo.cardapio.domain.CategoriaProduto;
+import com.br.infnet.pb_barpesujo.shared.dto.PaginaResponse;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -16,6 +20,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -31,6 +36,15 @@ public class ProdutoController {
     @GetMapping
     public List<ProdutoResponse> listar() {
         return produtoService.listar();
+    }
+
+    @GetMapping("/pesquisa")
+    public PaginaResponse<ProdutoResponse> pesquisar(
+            @RequestParam(required = false) String nome,
+            @RequestParam(required = false) CategoriaProduto categoria,
+            @RequestParam(required = false) Boolean disponivel,
+            @PageableDefault(size = 20, sort = "nome") Pageable pageable) {
+        return produtoService.pesquisar(nome, categoria, disponivel, pageable);
     }
 
     @GetMapping("/{id}")

@@ -19,9 +19,11 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import org.hibernate.envers.Audited;
 
 @Entity
 @Table(name = "comandas")
+@Audited
 public class Comanda {
 
     @Id
@@ -41,7 +43,7 @@ public class Comanda {
 
     private LocalDateTime fechadaEm;
 
-    @OneToMany(mappedBy = "comanda", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "comanda", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<ItemComanda> itens = new ArrayList<>();
 
     protected Comanda() {

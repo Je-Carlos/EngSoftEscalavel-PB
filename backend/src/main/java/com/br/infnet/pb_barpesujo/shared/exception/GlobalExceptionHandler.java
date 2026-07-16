@@ -3,6 +3,7 @@ package com.br.infnet.pb_barpesujo.shared.exception;
 import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -28,5 +29,11 @@ public class GlobalExceptionHandler {
                 .map(error -> error.getField() + ": " + error.getDefaultMessage())
                 .toList();
         return ResponseEntity.badRequest().body(ErrorResponse.of(400, "Dados inválidos", detalhes));
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ErrorResponse> handleIntegrity(DataIntegrityViolationException exception) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(ErrorResponse.of(409, "Integridade dos dados violada", List.of("A operação viola uma restrição do banco de dados.")));
     }
 }

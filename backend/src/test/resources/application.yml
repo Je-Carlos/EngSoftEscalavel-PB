@@ -1,0 +1,12 @@
+spring:
+  datasource:
+    url: jdbc:tc:postgresql:17-alpine:///pesujo?TC_DAEMON=true
+    driver-class-name: org.testcontainers.jdbc.ContainerDatabaseDriver
+    username: test
+    password: test
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    enabled: true

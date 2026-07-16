@@ -1,11 +1,14 @@
 package com.br.infnet.pb_barpesujo.cardapio.service;
 
 import com.br.infnet.pb_barpesujo.cardapio.domain.Produto;
+import com.br.infnet.pb_barpesujo.cardapio.domain.CategoriaProduto;
 import com.br.infnet.pb_barpesujo.cardapio.dto.ProdutoRequest;
 import com.br.infnet.pb_barpesujo.cardapio.dto.ProdutoResponse;
 import com.br.infnet.pb_barpesujo.cardapio.repository.ProdutoRepository;
 import com.br.infnet.pb_barpesujo.shared.exception.ResourceNotFoundException;
 import java.util.List;
+import org.springframework.data.domain.Pageable;
+import com.br.infnet.pb_barpesujo.shared.dto.PaginaResponse;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,6 +31,11 @@ public class ProdutoService {
     @Transactional(readOnly = true)
     public List<ProdutoResponse> listar() {
         return produtoRepository.findAll().stream().map(ProdutoService::toResponse).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public PaginaResponse<ProdutoResponse> pesquisar(String nome, CategoriaProduto categoria, Boolean disponivel, Pageable pageable) {
+        return PaginaResponse.of(produtoRepository.pesquisar(nome, categoria, disponivel, pageable), ProdutoService::toResponse);
     }
 
     @Transactional(readOnly = true)
