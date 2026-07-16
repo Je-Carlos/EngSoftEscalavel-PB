@@ -9,9 +9,11 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
+import org.hibernate.envers.Audited;
 
 @Entity
 @Table(name = "produtos")
+@Audited
 public class Produto {
 
     @Id

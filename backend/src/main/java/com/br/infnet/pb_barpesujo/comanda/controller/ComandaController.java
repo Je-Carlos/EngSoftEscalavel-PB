@@ -8,6 +8,11 @@ import com.br.infnet.pb_barpesujo.comanda.service.ComandaService;
 import jakarta.validation.Valid;
 import java.net.URI;
 import java.util.List;
+import com.br.infnet.pb_barpesujo.comanda.domain.StatusComanda;
+import com.br.infnet.pb_barpesujo.shared.dto.PaginaResponse;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -31,6 +36,13 @@ public class ComandaController {
     @GetMapping
     public List<ComandaResponse> listar() {
         return comandaService.listar();
+    }
+
+    @GetMapping("/pesquisa")
+    public PaginaResponse<ComandaResponse> pesquisar(
+            @RequestParam(required = false) StatusComanda status,
+            @PageableDefault(size = 20, sort = "abertaEm", direction = org.springframework.data.domain.Sort.Direction.DESC) Pageable pageable) {
+        return comandaService.pesquisar(status, pageable);
     }
 
     @GetMapping("/{id}")

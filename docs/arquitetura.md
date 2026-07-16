@@ -45,7 +45,7 @@ O frontend está em `frontend/` e usa React com Vite:
 - Spring Web MVC.
 - Spring Data JPA.
 - Bean Validation.
-- H2 Database.
+- PostgreSQL 17, Flyway e Hibernate Envers.
 - Maven.
 - React.
 - Vite.
@@ -153,7 +153,7 @@ flowchart LR
     API --> Controllers[Controllers]
     Controllers --> Services[Services]
     Services --> Repositories[Repositories]
-    Repositories --> DB[(Banco H2)]
+    Repositories --> DB[(PostgreSQL)]
 ```
 
 ## Sequência: Abertura de Comanda

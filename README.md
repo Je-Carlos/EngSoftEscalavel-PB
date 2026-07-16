@@ -10,7 +10,7 @@ A aplicação foi organizada para a primeira entrega acadêmica do projeto: back
 
 ## Arquitetura
 
-A descrição da arquitetura, dos domínios, dos endpoints e dos diagramas está em [docs/arquitetura.md](docs/arquitetura.md).
+A descrição da arquitetura, dos domínios, dos endpoints e dos diagramas está em [docs/arquitetura.md](docs/arquitetura.md). A configuração de banco, migrações e auditoria está em [docs/persistencia.md](docs/persistencia.md).
 
 ## Tecnologias
 
@@ -19,7 +19,9 @@ A descrição da arquitetura, dos domínios, dos endpoints e dos diagramas está
 - Spring Web MVC
 - Spring Data JPA
 - Bean Validation
-- H2 Database
+- PostgreSQL 17
+- Flyway
+- Hibernate Envers
 - Maven
 - React
 - Vite
@@ -61,6 +63,9 @@ Pb_BarPeSujo/
 ### Backend
 
 ```bash
+cp .env.example .env
+docker compose up -d
+set -a; source .env; set +a
 cd backend
 ./mvnw spring-boot:run
 ```
@@ -68,13 +73,7 @@ cd backend
 Endereços:
 
 - API: `http://localhost:8080`
-- H2 Console: `http://localhost:8080/h2-console`
-
-Credenciais do H2:
-
-- JDBC URL: `jdbc:h2:mem:pesujo`
-- User: `sa`
-- Password: vazio
+- PostgreSQL: `localhost:5432` (variáveis em `.env`)
 
 ### Frontend
 

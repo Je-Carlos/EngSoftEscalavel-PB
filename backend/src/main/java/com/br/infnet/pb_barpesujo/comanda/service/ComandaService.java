@@ -17,6 +17,8 @@ import com.br.infnet.pb_barpesujo.mesa.service.MesaService;
 import com.br.infnet.pb_barpesujo.shared.exception.BusinessException;
 import com.br.infnet.pb_barpesujo.shared.exception.ResourceNotFoundException;
 import java.util.List;
+import org.springframework.data.domain.Pageable;
+import com.br.infnet.pb_barpesujo.shared.dto.PaginaResponse;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -47,6 +49,11 @@ public class ComandaService {
     @Transactional(readOnly = true)
     public List<ComandaResponse> listar() {
         return comandaRepository.findAll().stream().map(ComandaService::toResponse).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public PaginaResponse<ComandaResponse> pesquisar(StatusComanda status, Pageable pageable) {
+        return PaginaResponse.of(comandaRepository.pesquisar(status, pageable), ComandaService::toResponse);
     }
 
     @Transactional(readOnly = true)
