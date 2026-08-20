@@ -122,6 +122,7 @@ class ComandaServiceIntegrationTest {
         ComandaResponse comItem = comandaService.adicionarItem(
                 comanda.id(), new AdicionarItemComandaRequest(produto.id(), 2));
 
+        assertThat(comItem.itens().getFirst().id()).isNotNull();
         comandaService.removerItem(comanda.id(), comItem.itens().getFirst().id());
         comandaService.adicionarItem(comanda.id(), new AdicionarItemComandaRequest(produto.id(), 1));
         comandaService.cancelar(comanda.id());

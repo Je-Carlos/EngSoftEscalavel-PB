@@ -76,6 +76,7 @@ public class ComandaService {
         }
         estoqueClient.baixar(movimentacao(List.of(new ItemMovimentacaoRequest(produto.getId(), request.quantidade()))));
         comanda.adicionarItem(produto, request.quantidade());
+        comandaRepository.flush();
         return toResponse(comanda);
     }
 
