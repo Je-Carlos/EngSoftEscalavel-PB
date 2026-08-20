@@ -65,15 +65,19 @@ Pb_BarPeSujo/
 
 ### Serviços
 
-```bash
-cp .env.example .env
-docker compose up -d
-mvn -f service-registry/pom.xml spring-boot:run
-mvn -f estoque-service/pom.xml spring-boot:run
-mvn -f backend/pom.xml spring-boot:run
+```powershell
+.\scripts\iniciar.ps1
 ```
 
-Use JDK 21. Inicie os serviços nessa ordem para que `backend` e `estoque-service` se registrem no Eureka.
+O lançador procura um JDK 21, prepara o `.env` quando necessário, inicia o Docker e abre janelas para Eureka, estoque, backend e frontend. Ele encerra processos nas portas `8761`, `8081`, `8080` e `5173` antes de reiniciar a aplicação.
+
+Para apenas validar Java, Docker, Node e portas sem iniciar processos:
+
+```powershell
+.\scripts\iniciar.ps1 -Verificar
+```
+
+Feche as janelas abertas pelo lançador para encerrar os serviços.
 
 Endereços:
 
@@ -81,18 +85,6 @@ Endereços:
 - Estoque: `http://localhost:8081`
 - Eureka: `http://localhost:8761`
 - PostgreSQL: `localhost:5432` (variáveis em `.env`)
-
-### Frontend
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-Endereço:
-
-- Frontend: `http://localhost:5173`
 
 ## Testes
 
@@ -121,6 +113,13 @@ Validação integrada, após iniciar os três serviços:
 
 ```powershell
 ./scripts/validar-integracao.ps1
+```
+
+Teste do lançador:
+
+```powershell
+Invoke-Pester .\scripts\iniciar.Tests.ps1
+Invoke-Pester .\scripts\validar-integracao.Tests.ps1
 ```
 
 ## Fluxo de demonstração
