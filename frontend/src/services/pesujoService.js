@@ -4,6 +4,11 @@ export const pesujoService = {
   listarMesas: () => apiRequest('/mesas'),
   listarProdutos: () => apiRequest('/produtos'),
   listarComandas: () => apiRequest('/comandas'),
+  listarEstoques: () => apiRequest('/estoques'),
+  atualizarEstoque: (produtoId, quantidade) => apiRequest(`/estoques/${produtoId}`, {
+    method: 'PUT',
+    body: JSON.stringify({ quantidade }),
+  }),
   cadastrarProduto: (produto) => apiRequest('/produtos', {
     method: 'POST',
     body: JSON.stringify(produto),

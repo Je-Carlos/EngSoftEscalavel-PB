@@ -38,6 +38,16 @@ O frontend está em `frontend/` e usa React com Vite:
 - `components`: componentes reutilizáveis.
 - `pages`: tela principal de atendimento.
 
+## Microsserviço de Estoque
+
+`estoque-service/` é responsável exclusivamente pelos saldos de produtos. Seu banco PostgreSQL não possui chaves estrangeiras para o banco do atendimento: a fronteira usa somente `produtoId` e HTTP.
+
+`service-registry/` executa o Eureka. O `backend/` e o `estoque-service/` registram-se nele; o backend localiza `estoque-service` pelo nome usando Spring Cloud OpenFeign. O front-end continua consumindo apenas o backend.
+
+Ao adicionar item a uma comanda, o backend reserva o saldo. Ao remover item ou cancelar comanda, ele o estorna. Fechar a conta mantém a baixa. Saldo insuficiente retorna `409`; serviço de estoque indisponível retorna `503`.
+
+As operações usam chamadas HTTP síncronas e lotes atômicos no banco do estoque. Não há transação distribuída ou reprocessamento idempotente nesta entrega; esse fluxo deve evoluir para outbox/saga caso seja necessário tolerar perda de resposta entre os serviços.
+
 ## Tecnologias
 
 - Java 21.
@@ -121,6 +131,13 @@ Comandas:
 | PATCH | `/api/comandas/{id}/fechar` | Fecha comanda |
 | PATCH | `/api/comandas/{id}/cancelar` | Cancela comanda |
 
+Estoque, exposto pelo backend e encaminhado ao microsserviço:
+
+| Método | Endpoint | Descrição |
+|---|---|---|
+| GET | `/api/estoques` | Lista saldos por produto |
+| PUT | `/api/estoques/{produtoId}` | Define o saldo de um produto |
+
 ## Como Executar
 
 Backend:
@@ -150,10 +167,14 @@ URLs locais:
 flowchart LR
     Usuario[Usuário / Atendente] --> Frontend[Frontend React]
     Frontend --> API[API REST Spring Boot]
+    API --> Eureka[Eureka Service Registry]
+    Estoque[Estoque Service] --> Eureka
+    API -->|OpenFeign| Estoque
     API --> Controllers[Controllers]
     Controllers --> Services[Services]
     Services --> Repositories[Repositories]
-    Repositories --> DB[(PostgreSQL)]
+    Repositories --> DB[(PostgreSQL Atendimento)]
+    Estoque --> EstoqueDB[(PostgreSQL Estoque)]
 ```
 
 ## Sequência: Abertura de Comanda

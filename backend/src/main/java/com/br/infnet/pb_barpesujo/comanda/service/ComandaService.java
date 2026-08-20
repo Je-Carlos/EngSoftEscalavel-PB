@@ -11,6 +11,9 @@ import com.br.infnet.pb_barpesujo.comanda.dto.ComandaResponse;
 import com.br.infnet.pb_barpesujo.comanda.dto.ItemComandaResponse;
 import com.br.infnet.pb_barpesujo.comanda.dto.TotalComandaResponse;
 import com.br.infnet.pb_barpesujo.comanda.repository.ComandaRepository;
+import com.br.infnet.pb_barpesujo.estoque.EstoqueClient;
+import com.br.infnet.pb_barpesujo.estoque.dto.ItemMovimentacaoRequest;
+import com.br.infnet.pb_barpesujo.estoque.dto.MovimentacaoEstoqueRequest;
 import com.br.infnet.pb_barpesujo.mesa.domain.Mesa;
 import com.br.infnet.pb_barpesujo.mesa.domain.StatusMesa;
 import com.br.infnet.pb_barpesujo.mesa.service.MesaService;
@@ -28,11 +31,13 @@ public class ComandaService {
     private final ComandaRepository comandaRepository;
     private final MesaService mesaService;
     private final ProdutoService produtoService;
+    private final EstoqueClient estoqueClient;
 
-    public ComandaService(ComandaRepository comandaRepository, MesaService mesaService, ProdutoService produtoService) {
+    public ComandaService(ComandaRepository comandaRepository, MesaService mesaService, ProdutoService produtoService, EstoqueClient estoqueClient) {
         this.comandaRepository = comandaRepository;
         this.mesaService = mesaService;
         this.produtoService = produtoService;
+        this.estoqueClient = estoqueClient;
     }
 
     @Transactional
@@ -69,6 +74,7 @@ public class ComandaService {
         if (!produto.isDisponivel()) {
             throw new BusinessException("Produto indisponível para adicionar à comanda.");
         }
+        estoqueClient.baixar(movimentacao(List.of(new ItemMovimentacaoRequest(produto.getId(), request.quantidade()))));
         comanda.adicionarItem(produto, request.quantidade());
         return toResponse(comanda);
     }
@@ -77,10 +83,9 @@ public class ComandaService {
     public ComandaResponse removerItem(Long id, Long itemId) {
         Comanda comanda = buscarEntidade(id);
         validarAberta(comanda);
-        boolean existeItem = comanda.getItens().stream().anyMatch(item -> item.getId().equals(itemId));
-        if (!existeItem) {
-            throw new ResourceNotFoundException("Item da comanda não encontrado.");
-        }
+        ItemComanda item = comanda.getItens().stream().filter(atual -> atual.getId().equals(itemId)).findFirst()
+                .orElseThrow(() -> new ResourceNotFoundException("Item da comanda não encontrado."));
+        estoqueClient.repor(movimentacao(List.of(new ItemMovimentacaoRequest(item.getProduto().getId(), item.getQuantidade()))));
         comanda.removerItem(itemId);
         return toResponse(comanda);
     }
@@ -107,6 +112,10 @@ public class ComandaService {
     public ComandaResponse cancelar(Long id) {
         Comanda comanda = buscarEntidade(id);
         validarAberta(comanda);
+        if (!comanda.getItens().isEmpty()) {
+            estoqueClient.repor(movimentacao(comanda.getItens().stream()
+                    .map(item -> new ItemMovimentacaoRequest(item.getProduto().getId(), item.getQuantidade())).toList()));
+        }
         comanda.cancelar();
         comanda.getMesa().setStatus(StatusMesa.LIVRE);
         return toResponse(comanda);
@@ -121,6 +130,10 @@ public class ComandaService {
         if (comanda.getStatus() != StatusComanda.ABERTA) {
             throw new BusinessException("A comanda precisa estar aberta para esta operação.");
         }
+    }
+
+    private static MovimentacaoEstoqueRequest movimentacao(List<ItemMovimentacaoRequest> itens) {
+        return new MovimentacaoEstoqueRequest(itens);
     }
 
     private static ComandaResponse toResponse(Comanda comanda) {

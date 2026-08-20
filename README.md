@@ -26,12 +26,15 @@ A descrição da arquitetura, dos domínios, dos endpoints e dos diagramas está
 - React
 - Vite
 - Vitest
+- Spring Cloud Netflix Eureka e OpenFeign
 
 ## Estrutura do repositório
 
 ```text
 Pb_BarPeSujo/
   backend/
+  estoque-service/
+  service-registry/
   frontend/
   docs/
   README.md
@@ -60,19 +63,23 @@ Pb_BarPeSujo/
 
 ## Como executar
 
-### Backend
+### Serviços
 
 ```bash
 cp .env.example .env
 docker compose up -d
-set -a; source .env; set +a
-cd backend
-./mvnw spring-boot:run
+mvn -f service-registry/pom.xml spring-boot:run
+mvn -f estoque-service/pom.xml spring-boot:run
+mvn -f backend/pom.xml spring-boot:run
 ```
+
+Use JDK 21. Inicie os serviços nessa ordem para que `backend` e `estoque-service` se registrem no Eureka.
 
 Endereços:
 
 - API: `http://localhost:8080`
+- Estoque: `http://localhost:8081`
+- Eureka: `http://localhost:8761`
 - PostgreSQL: `localhost:5432` (variáveis em `.env`)
 
 ### Frontend
@@ -108,6 +115,12 @@ Build do frontend:
 ```bash
 cd frontend
 npm run build
+```
+
+Validação integrada, após iniciar os três serviços:
+
+```powershell
+./scripts/validar-integracao.ps1
 ```
 
 ## Fluxo de demonstração

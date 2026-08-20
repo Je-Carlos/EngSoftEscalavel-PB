@@ -15,5 +15,22 @@ services:
       timeout: 5s
       retries: 10
 
+  postgres-estoque:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ${ESTOQUE_POSTGRES_DB:-estoque}
+      POSTGRES_USER: ${ESTOQUE_POSTGRES_USER:-estoque}
+      POSTGRES_PASSWORD: ${ESTOQUE_POSTGRES_PASSWORD:-estoque}
+    ports:
+      - "${ESTOQUE_POSTGRES_PORT:-5433}:5432"
+    volumes:
+      - postgres-estoque-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
 volumes:
   postgres-data:
+  postgres-estoque-data:

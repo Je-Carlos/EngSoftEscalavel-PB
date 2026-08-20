@@ -9,11 +9,11 @@ const categoriasLabels = {
   SOBREMESA: 'Sobremesas',
 };
 
-export default function CardapioQuickAdd({ produtos, comandaSelecionada, onAdicionarItem, formatarMoeda }) {
+export default function CardapioQuickAdd({ produtos, estoques, comandaSelecionada, onAdicionarItem, formatarMoeda }) {
   const [busca, setBusca] = useState('');
   const [categoriaAtiva, setCategoriaAtiva] = useState('TODOS');
 
-  const produtosDisponiveis = produtos.filter((produto) => produto.disponivel);
+  const produtosDisponiveis = produtos.filter((produto) => produto.disponivel && (estoques[produto.id] ?? 0) > 0);
   const categorias = ['TODOS', ...new Set(produtosDisponiveis.map((produto) => produto.categoria))];
 
   const produtosFiltrados = useMemo(() => {

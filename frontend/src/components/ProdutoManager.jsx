@@ -33,8 +33,11 @@ export default function ProdutoManager({
   salvarProduto,
   cadastrarProduto,
   formatarMoeda,
+  estoques,
+  atualizarEstoque,
 }) {
   const [mostrarLista, setMostrarLista] = useState(false);
+  const [saldosEdicao, setSaldosEdicao] = useState({});
 
   return (
     <section className="rounded-lg border border-[#d8bd83] bg-[#fff8e8] p-4 shadow-sm">
@@ -142,6 +145,27 @@ export default function ProdutoManager({
                             Editar
                           </button>
                         </div>
+                      </div>
+
+                      <div className="mt-3 flex items-end gap-2">
+                        <label className="grid gap-1 text-sm font-bold text-[#263126]">
+                          Saldo em estoque
+                          <input
+                            aria-label={`Saldo ${produto.nome}`}
+                            className="w-28 rounded-lg border border-[#d8bd83] px-3 py-2"
+                            min="0"
+                            onChange={(event) => setSaldosEdicao({ ...saldosEdicao, [produto.id]: event.target.value })}
+                            type="number"
+                            value={saldosEdicao[produto.id] ?? estoques[produto.id] ?? 0}
+                          />
+                        </label>
+                        <button
+                          className="rounded-lg bg-[#1d6f57] px-3 py-2 font-black text-white"
+                          onClick={() => atualizarEstoque(produto.id, Number(saldosEdicao[produto.id] ?? estoques[produto.id] ?? 0))}
+                          type="button"
+                        >
+                          Atualizar estoque
+                        </button>
                       </div>
 
                       {editando && (

@@ -18,6 +18,10 @@ erDiagram
 
 As relações são LAZY. Consultas de comandas carregam mesa com `EntityGraph` e coleções por lote para evitar N+1. Operações de comanda são transacionais.
 
+## Banco do estoque
+
+O `estoque-service` possui um PostgreSQL independente, criado por `estoque-service/src/main/resources/db/migration/V1__criar_schema.sql`. A tabela `estoques` mantém `produto_id` único e `quantidade >= 0`. Não há chave estrangeira entre os bancos; a integração usa o contrato REST do microsserviço.
+
 ## Banco local
 
 ```bash

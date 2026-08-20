@@ -33,6 +33,14 @@ const produtos = [
     preco: 6,
     disponivel: false,
   },
+  {
+    id: 13,
+    nome: 'Bolinho de bacalhau',
+    descricao: 'Porção da casa',
+    categoria: 'PORCAO',
+    preco: 18,
+    disponivel: true,
+  },
 ];
 
 const comandas = [
@@ -52,6 +60,13 @@ const comandas = [
   },
 ];
 
+const estoques = [
+  { produtoId: 10, quantidade: 8 },
+  { produtoId: 11, quantidade: 5 },
+  { produtoId: 12, quantidade: 4 },
+  { produtoId: 13, quantidade: 0 },
+];
+
 function mockApi() {
   return vi.spyOn(globalThis, 'fetch').mockImplementation(async (url, options = {}) => {
     const path = String(url).replace('http://localhost:8080/api', '');
@@ -66,6 +81,10 @@ function mockApi() {
 
     if (path === '/comandas') {
       return Response.json(comandas);
+    }
+
+    if (path === '/estoques') {
+      return Response.json(estoques);
     }
 
     if (path === '/comandas/abrir') {
@@ -213,4 +232,15 @@ test('mantem o cadastro de produto como fluxo secundario', async () => {
       }),
     );
   });
+});
+
+test('não permite lançar produto sem saldo no estoque', async () => {
+  mockApi();
+
+  render(<App />);
+
+  await screen.findByRole('heading', { level: 2, name: 'Comanda #20' });
+  fireEvent.change(screen.getByLabelText(/Buscar no cardápio/i), { target: { value: 'bolinho' } });
+
+  expect(screen.queryByRole('button', { name: /Adicionar Bolinho de bacalhau/i })).not.toBeInTheDocument();
 });

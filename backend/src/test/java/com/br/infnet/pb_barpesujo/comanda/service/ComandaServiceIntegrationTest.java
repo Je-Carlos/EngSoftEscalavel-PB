@@ -7,19 +7,25 @@ import com.br.infnet.pb_barpesujo.cardapio.service.ProdutoService;
 import com.br.infnet.pb_barpesujo.comanda.dto.AbrirComandaRequest;
 import com.br.infnet.pb_barpesujo.comanda.dto.AdicionarItemComandaRequest;
 import com.br.infnet.pb_barpesujo.comanda.dto.ComandaResponse;
+import com.br.infnet.pb_barpesujo.estoque.EstoqueClient;
+import com.br.infnet.pb_barpesujo.estoque.dto.ItemMovimentacaoRequest;
+import com.br.infnet.pb_barpesujo.estoque.dto.MovimentacaoEstoqueRequest;
 import com.br.infnet.pb_barpesujo.mesa.domain.StatusMesa;
 import com.br.infnet.pb_barpesujo.mesa.dto.MesaRequest;
 import com.br.infnet.pb_barpesujo.mesa.dto.MesaResponse;
 import com.br.infnet.pb_barpesujo.mesa.service.MesaService;
 import com.br.infnet.pb_barpesujo.shared.exception.BusinessException;
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.verify;
 
 @SpringBootTest
 class ComandaServiceIntegrationTest {
@@ -34,6 +40,9 @@ class ComandaServiceIntegrationTest {
 
     @Autowired
     private ComandaService comandaService;
+
+    @MockitoBean
+    private EstoqueClient estoqueClient;
 
     @Test
     void abrirComandaOcupaMesaEImpedeOutraComandaAbertaNaMesmaMesa() {
@@ -61,6 +70,7 @@ class ComandaServiceIntegrationTest {
         assertThat(atualizada.itens()).hasSize(1);
         assertThat(atualizada.total()).isEqualByComparingTo("28.50");
         assertThat(comandaService.calcularTotal(comanda.id()).total()).isEqualByComparingTo("28.50");
+        verify(estoqueClient).baixar(new MovimentacaoEstoqueRequest(List.of(new ItemMovimentacaoRequest(pastel.id(), 3))));
     }
 
     @Test
@@ -102,6 +112,22 @@ class ComandaServiceIntegrationTest {
                 comanda.id(), new AdicionarItemComandaRequest(torresmo.id(), 1)))
                 .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("aberta");
+    }
+
+    @Test
+    void removerOuCancelarComandaEstornaOsItensNoEstoque() {
+        MesaResponse mesa = criarMesaLivre();
+        ProdutoResponse produto = criarProdutoDisponivel("Bolinho teste", "12.00");
+        ComandaResponse comanda = comandaService.abrir(new AbrirComandaRequest(mesa.id()));
+        ComandaResponse comItem = comandaService.adicionarItem(
+                comanda.id(), new AdicionarItemComandaRequest(produto.id(), 2));
+
+        comandaService.removerItem(comanda.id(), comItem.itens().getFirst().id());
+        comandaService.adicionarItem(comanda.id(), new AdicionarItemComandaRequest(produto.id(), 1));
+        comandaService.cancelar(comanda.id());
+
+        verify(estoqueClient).repor(new MovimentacaoEstoqueRequest(List.of(new ItemMovimentacaoRequest(produto.id(), 2))));
+        verify(estoqueClient).repor(new MovimentacaoEstoqueRequest(List.of(new ItemMovimentacaoRequest(produto.id(), 1))));
     }
 
     private MesaResponse criarMesaLivre() {

@@ -22,6 +22,7 @@ export default function AtendimentoPage() {
   const [mesas, setMesas] = useState([]);
   const [produtos, setProdutos] = useState([]);
   const [comandas, setComandas] = useState([]);
+  const [estoques, setEstoques] = useState({});
   const [produtosEdicao, setProdutosEdicao] = useState({});
   const [produtoEmEdicao, setProdutoEmEdicao] = useState(null);
   const [produtoForm, setProdutoForm] = useState(produtoInicial);
@@ -49,16 +50,18 @@ export default function AtendimentoPage() {
     setCarregando(true);
     setMensagem('');
     try {
-      const [mesasApi, produtosApi, comandasApi] = await Promise.all([
+      const [mesasApi, produtosApi, comandasApi, estoquesApi] = await Promise.all([
         pesujoService.listarMesas(),
         pesujoService.listarProdutos(),
         pesujoService.listarComandas(),
+        pesujoService.listarEstoques(),
       ]);
       const comandaInicial = escolherComandaInicial(comandasApi);
 
       setMesas(mesasApi);
       setProdutos(produtosApi);
       setComandas(comandasApi);
+      setEstoques(Object.fromEntries(estoquesApi.map((estoque) => [estoque.produtoId, estoque.quantidade])));
       setProdutosEdicao(Object.fromEntries(produtosApi.map((produto) => [produto.id, { ...produto }])));
 
       if (selecionarPrimeira || !comandaSelecionadaId) {
@@ -183,6 +186,16 @@ export default function AtendimentoPage() {
     }
   }
 
+  async function atualizarEstoque(produtoId, quantidade) {
+    try {
+      const estoque = await pesujoService.atualizarEstoque(produtoId, quantidade);
+      setEstoques((atuais) => ({ ...atuais, [estoque.produtoId]: estoque.quantidade }));
+      setMensagem('Estoque atualizado.');
+    } catch (error) {
+      setMensagem(error.message);
+    }
+  }
+
   function editarProduto(produtoId, campo, valor) {
     setProdutosEdicao((atual) => ({
       ...atual,
@@ -258,6 +271,7 @@ export default function AtendimentoPage() {
             />
             <CardapioQuickAdd
               comandaSelecionada={comandaSelecionada}
+              estoques={estoques}
               formatarMoeda={formatarMoeda}
               onAdicionarItem={adicionarItem}
               produtos={produtos}
@@ -266,12 +280,14 @@ export default function AtendimentoPage() {
               aberto={gerenciadorAberto}
               cadastrarProduto={cadastrarProduto}
               editarProduto={editarProduto}
+              estoques={estoques}
               formatarMoeda={formatarMoeda}
               produtoEmEdicao={produtoEmEdicao}
               produtoForm={produtoForm}
               produtos={produtos}
               produtosEdicao={produtosEdicao}
               salvarProduto={salvarProduto}
+              atualizarEstoque={atualizarEstoque}
               setAberto={setGerenciadorAberto}
               setProdutoEmEdicao={setProdutoEmEdicao}
               setProdutoForm={setProdutoForm}

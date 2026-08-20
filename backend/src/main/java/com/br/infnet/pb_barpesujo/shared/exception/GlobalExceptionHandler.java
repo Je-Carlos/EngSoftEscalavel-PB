@@ -1,6 +1,7 @@
 package com.br.infnet.pb_barpesujo.shared.exception;
 
 import java.util.List;
+import feign.FeignException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -35,5 +36,15 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleIntegrity(DataIntegrityViolationException exception) {
         return ResponseEntity.status(HttpStatus.CONFLICT)
                 .body(ErrorResponse.of(409, "Integridade dos dados violada", List.of("A operação viola uma restrição do banco de dados.")));
+    }
+
+    @ExceptionHandler(FeignException.class)
+    public ResponseEntity<ErrorResponse> handleEstoque(FeignException exception) {
+        if (exception.status() == 409) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(ErrorResponse.of(409, "Regra de negócio violada", List.of("Estoque insuficiente para concluir a operação.")));
+        }
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body(ErrorResponse.of(503, "Serviço indisponível", List.of("O serviço de estoque está indisponível.")));
     }
 }
