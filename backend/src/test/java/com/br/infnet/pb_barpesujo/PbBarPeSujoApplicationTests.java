@@ -3,6 +3,8 @@ package com.br.infnet.pb_barpesujo;
 import com.br.infnet.pb_barpesujo.shared.config.CorsConfig;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.amqp.rabbit.listener.RabbitListenerEndpointRegistry;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 
@@ -12,6 +14,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest
 class PbBarPeSujoApplicationTests {
+
+    @Autowired
+    private RabbitListenerEndpointRegistry listeners;
+
+    @Test
+    void testesNaoIniciamConsumidoresReais() {
+        assertThat(listeners.getListenerContainers())
+                .isEmpty();
+    }
 
     @Test
     void contextLoads() {

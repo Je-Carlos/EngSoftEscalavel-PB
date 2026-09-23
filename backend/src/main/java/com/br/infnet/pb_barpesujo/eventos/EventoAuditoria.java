@@ -6,8 +6,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.sql.Timestamp;
 import java.util.List;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
@@ -21,7 +23,6 @@ public class EventoAuditoria {
     }
 
     @Transactional
-    @RabbitListener(queues = "comandas.auditoria")
     public void receber(String payload) throws JsonProcessingException {
         ComandaEvento evento = mapper.readValue(payload, ComandaEvento.class);
         jdbc.update("insert into eventos_auditoria (event_id, aggregate_id, occurred_at, payload) "
@@ -38,5 +39,20 @@ public class EventoAuditoria {
                         throw new IllegalStateException("Evento de auditoria inválido", e);
                     }
                 }, comandaId);
+    }
+
+    @Component
+    @ConditionalOnProperty(name = "app.eventos.consumidores.enabled", havingValue = "true", matchIfMissing = true)
+    static class Consumidor {
+        private final EventoAuditoria auditoria;
+
+        Consumidor(EventoAuditoria auditoria) {
+            this.auditoria = auditoria;
+        }
+
+        @RabbitListener(queues = "comandas.auditoria")
+        void receber(String payload) throws JsonProcessingException {
+            auditoria.receber(payload);
+        }
     }
 }

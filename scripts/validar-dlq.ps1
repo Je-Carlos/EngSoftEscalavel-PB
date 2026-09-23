@@ -30,9 +30,18 @@ $limite = (Get-Date).AddSeconds(45)
 do {
     $fila = Invoke-RestMethod 'http://localhost:15672/api/queues/%2F/comandas.estoque.dlq' -Headers $headers
     $auditoria = Invoke-RestMethod "http://localhost:8080/api/eventos/comandas/$comandaId"
-    if ($fila.messages -gt 0 -and ($auditoria | Where-Object eventId -eq $eventId)) { break }
+    $naDlq = $false
+    if ($fila.messages -gt 0) {
+        $mensagens = Invoke-RestMethod 'http://localhost:15672/api/queues/%2F/comandas.estoque.dlq/get' `
+            -Method Post -Headers $headers -ContentType 'application/json' `
+            -Body '{"count":100,"ackmode":"ack_requeue_true","encoding":"auto"}'
+        foreach ($mensagem in $mensagens) {
+            if (($mensagem.payload | ConvertFrom-Json).eventId -eq $eventId) { $naDlq = $true; break }
+        }
+    }
+    if ($naDlq -and ($auditoria | Where-Object eventId -eq $eventId)) { break }
     Start-Sleep -Seconds 1
 } while ((Get-Date) -lt $limite)
-if ($fila.messages -le 0) { throw 'Evento não chegou à DLQ do estoque.' }
+if (-not $naDlq) { throw 'Evento não chegou à DLQ do estoque.' }
 if (-not ($auditoria | Where-Object eventId -eq $eventId)) { throw 'Auditoria não recebeu o evento.' }
 Write-Output "DLQ do estoque e auditoria validadas para eventId=$eventId"

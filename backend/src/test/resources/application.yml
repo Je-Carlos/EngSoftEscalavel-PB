@@ -1,8 +1,4 @@
 spring:
-  rabbitmq:
-    listener:
-      simple:
-        auto-startup: false
   datasource:
     url: jdbc:tc:postgresql:17-alpine:///pesujo?TC_DAEMON=true
     driver-class-name: org.testcontainers.jdbc.ContainerDatabaseDriver
@@ -19,5 +15,7 @@ eureka:
     enabled: false
 app:
   eventos:
+    consumidores:
+      enabled: false
     publicador:
       enabled: false

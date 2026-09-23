@@ -18,7 +18,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionTemplate;
 
 @Component
-@ConditionalOnProperty(name = "app.eventos.publicador.enabled", havingValue = "true", matchIfMissing = true)
 public class OutboxPublisher {
     private static final Logger log = LoggerFactory.getLogger(OutboxPublisher.class);
     private final JdbcTemplate jdbc;
@@ -31,7 +30,6 @@ public class OutboxPublisher {
         this.transaction = transaction;
     }
 
-    @Scheduled(fixedDelayString = "${app.eventos.publicador.intervalo-ms:1000}")
     public void publicar() {
         transaction.executeWithoutResult(status -> {
             // ponytail: o lock dura até o broker confirmar; dividir em lotes menores se a taxa crescer.
@@ -59,4 +57,19 @@ public class OutboxPublisher {
     }
 
     private record Pendente(UUID id, String chave, String payload) {}
+
+    @Component
+    @ConditionalOnProperty(name = "app.eventos.publicador.enabled", havingValue = "true", matchIfMissing = true)
+    static class Agendador {
+        private final OutboxPublisher publicador;
+
+        Agendador(OutboxPublisher publicador) {
+            this.publicador = publicador;
+        }
+
+        @Scheduled(fixedDelayString = "${app.eventos.publicador.intervalo-ms:1000}")
+        void publicar() {
+            publicador.publicar();
+        }
+    }
 }

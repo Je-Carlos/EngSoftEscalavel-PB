@@ -1,9 +1,13 @@
 param(
-    [string]$PostgresUser = 'pesujo',
-    [string]$PostgresDb = 'pesujo'
+    [string]$PostgresUser,
+    [string]$PostgresDb
 )
 
 $ErrorActionPreference = 'Stop'
+$envFile = if (Test-Path .env) { '.env' } else { '.env.example' }
+$config = Get-Content $envFile -Raw | ConvertFrom-StringData
+if (-not $PostgresUser) { $PostgresUser = $config.POSTGRES_USER }
+if (-not $PostgresDb) { $PostgresDb = $config.POSTGRES_DB }
 $api = 'http://localhost:8080/api'
 $produto = (Invoke-RestMethod "$api/produtos")[0]
 $mesas = Invoke-RestMethod "$api/mesas"
@@ -13,13 +17,13 @@ Invoke-RestMethod "$api/estoques/$($produto.id)" -Method Put -ContentType 'appli
 $comanda = Invoke-RestMethod "$api/comandas/abrir" -Method Post -ContentType 'application/json' -Body "{`"mesaId`":$($mesa.id)}"
 $comItem = Invoke-RestMethod "$api/comandas/$($comanda.id)/itens" -Method Post -ContentType 'application/json' -Body "{`"produtoId`":$($produto.id),`"quantidade`":1}"
 
-docker compose --env-file .env.example stop rabbitmq | Out-Null
+docker compose --env-file $envFile stop rabbitmq | Out-Null
 try {
     Invoke-RestMethod "$api/comandas/$($comanda.id)/itens/$($comItem.itens[0].id)" -Method Delete | Out-Null
-    $pendentes = docker compose --env-file .env.example exec -T postgres psql -U $PostgresUser -d $PostgresDb -tAc "select count(*) from eventos_outbox where aggregate_id = $($comanda.id) and published_at is null"
+    $pendentes = docker compose --env-file $envFile exec -T postgres psql -U $PostgresUser -d $PostgresDb -tAc "select count(*) from eventos_outbox where aggregate_id = $($comanda.id) and published_at is null"
     if ([int]$pendentes -ne 1) { throw "Outbox não ficou pendente: $pendentes" }
 } finally {
-    docker compose --env-file .env.example start rabbitmq | Out-Null
+    docker compose --env-file $envFile start rabbitmq | Out-Null
 }
 
 $limite = (Get-Date).AddSeconds(60)
@@ -33,4 +37,5 @@ do {
 if ($saldo -ne 3 -or -not ($eventos | Where-Object eventType -eq 'ItemRemovido')) {
     throw 'Estorno e auditoria não convergiram após reiniciar o broker.'
 }
+Invoke-RestMethod "$api/comandas/$($comanda.id)/cancelar" -Method Patch | Out-Null
 Write-Output "Recuperação do broker validada para comanda=$($comanda.id)"
