@@ -1,6 +1,17 @@
 spring:
   application:
     name: estoque-service
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USER:pesujo}
+    password: ${RABBITMQ_PASSWORD:pesujo}
+    listener:
+      simple:
+        default-requeue-rejected: false
+        retry:
+          enabled: true
+          max-attempts: 3
   datasource:
     url: jdbc:postgresql://${ESTOQUE_POSTGRES_HOST:localhost}:${ESTOQUE_POSTGRES_PORT:5433}/${ESTOQUE_POSTGRES_DB:estoque}
     username: ${ESTOQUE_POSTGRES_USER:estoque}

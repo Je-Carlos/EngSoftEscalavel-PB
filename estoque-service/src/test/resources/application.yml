@@ -12,3 +12,7 @@ spring:
 eureka:
   client:
     enabled: false
+app:
+  eventos:
+    consumidores:
+      enabled: false

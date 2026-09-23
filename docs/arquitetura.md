@@ -2,7 +2,7 @@
 
 ## Objetivo
 
-O Pé Sujo é um sistema acadêmico de comanda aberta para um boteco brasileiro tradicional. A primeira entrega implementa um monólito simples com Spring Boot, frontend React e documentação técnica.
+O Pé Sujo é um sistema acadêmico de comanda aberta para um boteco brasileiro tradicional. O atendimento permanece em um backend Spring Boot e o estoque tem serviço e banco próprios.
 
 ## Contexto
 
@@ -40,13 +40,13 @@ O frontend está em `frontend/` e usa React com Vite:
 
 ## Microsserviço de Estoque
 
-`estoque-service/` é responsável exclusivamente pelos saldos de produtos. Seu banco PostgreSQL não possui chaves estrangeiras para o banco do atendimento: a fronteira usa somente `produtoId` e HTTP.
+`estoque-service/` é responsável exclusivamente pelos saldos de produtos. Seu banco PostgreSQL não possui chaves estrangeiras para o banco do atendimento: a baixa usa `produtoId` por HTTP e o estorno usa eventos RabbitMQ.
 
 `service-registry/` executa o Eureka. O `backend/` e o `estoque-service/` registram-se nele; o backend localiza `estoque-service` pelo nome usando Spring Cloud OpenFeign. O front-end continua consumindo apenas o backend.
 
-Ao adicionar item a uma comanda, o backend reserva o saldo. Ao remover item ou cancelar comanda, ele o estorna. Fechar a conta mantém a baixa. Saldo insuficiente retorna `409`; serviço de estoque indisponível retorna `503`.
+Ao adicionar item a uma comanda, o backend reserva o saldo de forma síncrona. Ao remover item ou cancelar comanda, grava um evento em outbox e o estoque estorna de forma assíncrona. Fechar a conta mantém a baixa. Saldo insuficiente na adição retorna `409`; serviço de estoque indisponível na adição retorna `503`.
 
-As operações usam chamadas HTTP síncronas e lotes atômicos no banco do estoque. Não há transação distribuída ou reprocessamento idempotente nesta entrega; esse fluxo deve evoluir para outbox/saga caso seja necessário tolerar perda de resposta entre os serviços.
+O estorno usa outbox transacional, confirmação do broker e deduplicação no estoque. Não há transação distribuída entre a baixa síncrona e a comanda. O contrato, diagramas e recuperação de falhas estão em [eventos.md](eventos.md).
 
 ## Tecnologias
 
@@ -71,7 +71,7 @@ Subdomínios:
 - Atendimento: mesas, comandas e status do atendimento.
 - Cardápio: produtos, categorias, preços e disponibilidade.
 - Pagamento: representado pelo fechamento simples da comanda.
-- Estoque: citado como evolução futura, sem implementação nesta entrega.
+- Estoque: saldo de produtos em serviço separado e estorno por eventos.
 
 Bounded contexts:
 
@@ -80,7 +80,7 @@ Bounded contexts:
 | Atendimento | Controle de mesas e comandas | Sim |
 | Cardápio | Produtos, categorias e disponibilidade | Sim |
 | Pagamento | Fechamento de conta | Parcial |
-| Estoque | Ingredientes e reposição | Não |
+| Estoque | Saldo de produtos e estorno | Sim |
 | Relatórios | Faturamento e produtos mais vendidos | Não |
 
 ## Regras de Negócio
@@ -130,6 +130,12 @@ Comandas:
 | GET | `/api/comandas/{id}/total` | Consulta total |
 | PATCH | `/api/comandas/{id}/fechar` | Fecha comanda |
 | PATCH | `/api/comandas/{id}/cancelar` | Cancela comanda |
+
+Auditoria de eventos:
+
+| Método | Endpoint | Descrição |
+|---|---|---|
+| GET | `/api/eventos/comandas/{id}` | Lista eventos já consumidos pela auditoria |
 
 Estoque, exposto pelo backend e encaminhado ao microsserviço:
 
@@ -229,7 +235,6 @@ sequenceDiagram
 - Extrair Serviço de Atendimento.
 - Extrair Serviço de Cardápio.
 - Criar Serviço de Pagamento.
-- Criar Serviço de Estoque.
 - Criar Serviço de Relatórios.
 - Criar Serviço de Notificações.
 
