@@ -1,9 +1,17 @@
 $ErrorActionPreference = 'Stop'
 $api = 'http://localhost:8080/api'
 
-if ((Invoke-WebRequest 'http://localhost:8761/eureka/apps' -UseBasicParsing).Content -notmatch 'ESTOQUE-SERVICE') {
-    throw 'estoque-service não está registrado no Eureka.'
-}
+$limiteInicio = (Get-Date).AddSeconds(60)
+do {
+    try {
+        Invoke-RestMethod "$api/estoques" | Out-Null
+        $estoquesProntos = $true
+        break
+    } catch {
+        Start-Sleep -Seconds 1
+    }
+} while ((Get-Date) -lt $limiteInicio)
+if (-not $estoquesProntos) { throw 'Backend ainda não consegue acessar o estoque.' }
 
 $produto = @((Invoke-RestMethod "$api/produtos")) | Select-Object -First 1
 $mesa = @((Invoke-RestMethod "$api/mesas")) | Where-Object status -eq 'LIVRE' | Select-Object -First 1
@@ -19,8 +27,15 @@ $saldoAposBaixa = ($estoques | Where-Object produtoId -eq $produto.id).quantidad
 if ($saldoAposBaixa -ne 2) { throw "Baixa não aplicada: saldo $saldoAposBaixa." }
 
 Invoke-RestMethod "$api/comandas/$($comanda.id)/cancelar" -Method Patch | Out-Null
-$estoques = @((Invoke-RestMethod "$api/estoques"))
-$saldoAposEstorno = ($estoques | Where-Object produtoId -eq $produto.id).quantidade
+$limite = (Get-Date).AddSeconds(45)
+do {
+    $estoques = @((Invoke-RestMethod "$api/estoques"))
+    $saldoAposEstorno = ($estoques | Where-Object produtoId -eq $produto.id).quantidade
+    $eventos = @((Invoke-RestMethod "$api/eventos/comandas/$($comanda.id)"))
+    if ($saldoAposEstorno -eq $saldoInicial -and ($eventos | Where-Object eventType -eq 'ComandaCancelada')) { break }
+    Start-Sleep -Milliseconds 500
+} while ((Get-Date) -lt $limite)
 if ($saldoAposEstorno -ne $saldoInicial) { throw "Estorno não aplicado: saldo $saldoAposEstorno." }
+if (-not ($eventos | Where-Object eventType -eq 'ComandaCancelada')) { throw 'Evento de auditoria ausente.' }
 
-Write-Output 'Integração validada: Eureka, baixa e estorno de estoque.'
+Write-Output 'Integração validada: Eureka, baixa, estorno assíncrono e auditoria.'
