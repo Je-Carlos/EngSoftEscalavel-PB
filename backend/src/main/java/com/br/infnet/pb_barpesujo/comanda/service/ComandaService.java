@@ -14,6 +14,8 @@ import com.br.infnet.pb_barpesujo.comanda.repository.ComandaRepository;
 import com.br.infnet.pb_barpesujo.estoque.EstoqueClient;
 import com.br.infnet.pb_barpesujo.estoque.dto.ItemMovimentacaoRequest;
 import com.br.infnet.pb_barpesujo.estoque.dto.MovimentacaoEstoqueRequest;
+import com.br.infnet.eventos.ComandaEvento;
+import com.br.infnet.pb_barpesujo.eventos.Outbox;
 import com.br.infnet.pb_barpesujo.mesa.domain.Mesa;
 import com.br.infnet.pb_barpesujo.mesa.domain.StatusMesa;
 import com.br.infnet.pb_barpesujo.mesa.service.MesaService;
@@ -32,12 +34,14 @@ public class ComandaService {
     private final MesaService mesaService;
     private final ProdutoService produtoService;
     private final EstoqueClient estoqueClient;
+    private final Outbox outbox;
 
-    public ComandaService(ComandaRepository comandaRepository, MesaService mesaService, ProdutoService produtoService, EstoqueClient estoqueClient) {
+    public ComandaService(ComandaRepository comandaRepository, MesaService mesaService, ProdutoService produtoService, EstoqueClient estoqueClient, Outbox outbox) {
         this.comandaRepository = comandaRepository;
         this.mesaService = mesaService;
         this.produtoService = produtoService;
         this.estoqueClient = estoqueClient;
+        this.outbox = outbox;
     }
 
     @Transactional
@@ -86,7 +90,8 @@ public class ComandaService {
         validarAberta(comanda);
         ItemComanda item = comanda.getItens().stream().filter(atual -> atual.getId().equals(itemId)).findFirst()
                 .orElseThrow(() -> new ResourceNotFoundException("Item da comanda não encontrado."));
-        estoqueClient.repor(movimentacao(List.of(new ItemMovimentacaoRequest(item.getProduto().getId(), item.getQuantidade()))));
+        outbox.gravar(ComandaEvento.ITEM_REMOVIDO, id,
+                List.of(new ComandaEvento.Item(item.getId(), item.getProduto().getId(), item.getQuantidade())));
         comanda.removerItem(itemId);
         return toResponse(comanda);
     }
@@ -113,10 +118,8 @@ public class ComandaService {
     public ComandaResponse cancelar(Long id) {
         Comanda comanda = buscarEntidade(id);
         validarAberta(comanda);
-        if (!comanda.getItens().isEmpty()) {
-            estoqueClient.repor(movimentacao(comanda.getItens().stream()
-                    .map(item -> new ItemMovimentacaoRequest(item.getProduto().getId(), item.getQuantidade())).toList()));
-        }
+        outbox.gravar(ComandaEvento.COMANDA_CANCELADA, id, comanda.getItens().stream()
+                .map(item -> new ComandaEvento.Item(item.getId(), item.getProduto().getId(), item.getQuantidade())).toList());
         comanda.cancelar();
         comanda.getMesa().setStatus(StatusMesa.LIVRE);
         return toResponse(comanda);

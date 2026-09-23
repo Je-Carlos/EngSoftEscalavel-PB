@@ -2,6 +2,7 @@ backend/HELP.md
 backend/target/
 estoque-service/target/
 service-registry/target/
+eventos-contratos/target/
 backend/.mvn/wrapper/maven-wrapper.jar
 .worktrees/
 .env

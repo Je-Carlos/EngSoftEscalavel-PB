@@ -18,10 +18,12 @@ import com.br.infnet.pb_barpesujo.shared.exception.BusinessException;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -40,6 +42,12 @@ class ComandaServiceIntegrationTest {
 
     @Autowired
     private ComandaService comandaService;
+
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+
+    @Autowired
+    private TransactionTemplate transactionTemplate;
 
     @MockitoBean
     private EstoqueClient estoqueClient;
@@ -115,7 +123,7 @@ class ComandaServiceIntegrationTest {
     }
 
     @Test
-    void removerOuCancelarComandaEstornaOsItensNoEstoque() {
+    void removerOuCancelarComandaGravaEventosParaEstorno() {
         MesaResponse mesa = criarMesaLivre();
         ProdutoResponse produto = criarProdutoDisponivel("Bolinho teste", "12.00");
         ComandaResponse comanda = comandaService.abrir(new AbrirComandaRequest(mesa.id()));
@@ -127,8 +135,29 @@ class ComandaServiceIntegrationTest {
         comandaService.adicionarItem(comanda.id(), new AdicionarItemComandaRequest(produto.id(), 1));
         comandaService.cancelar(comanda.id());
 
-        verify(estoqueClient).repor(new MovimentacaoEstoqueRequest(List.of(new ItemMovimentacaoRequest(produto.id(), 2))));
-        verify(estoqueClient).repor(new MovimentacaoEstoqueRequest(List.of(new ItemMovimentacaoRequest(produto.id(), 1))));
+        List<String> eventos = jdbcTemplate.queryForList(
+                "select payload from eventos_outbox where aggregate_id = ? order by occurred_at", String.class, comanda.id());
+        assertThat(eventos).hasSize(2);
+        assertThat(eventos.get(0)).contains("ItemRemovido", "\"produtoId\":" + produto.id(), "\"quantidade\":2");
+        assertThat(eventos.get(1)).contains("ComandaCancelada", "\"produtoId\":" + produto.id(), "\"quantidade\":1");
+    }
+
+    @Test
+    void rollbackDaRemocaoTambemDesfazEvento() {
+        MesaResponse mesa = criarMesaLivre();
+        ProdutoResponse produto = criarProdutoDisponivel("Pastel rollback", "8.00");
+        ComandaResponse comanda = comandaService.abrir(new AbrirComandaRequest(mesa.id()));
+        Long itemId = comandaService.adicionarItem(comanda.id(),
+                new AdicionarItemComandaRequest(produto.id(), 1)).itens().getFirst().id();
+
+        assertThatThrownBy(() -> transactionTemplate.executeWithoutResult(status -> {
+            comandaService.removerItem(comanda.id(), itemId);
+            throw new IllegalStateException("cancelar transação");
+        })).isInstanceOf(IllegalStateException.class);
+
+        assertThat(comandaService.buscarPorId(comanda.id()).itens()).hasSize(1);
+        assertThat(jdbcTemplate.queryForObject("select count(*) from eventos_outbox where aggregate_id = ?",
+                Integer.class, comanda.id())).isZero();
     }
 
     private MesaResponse criarMesaLivre() {
