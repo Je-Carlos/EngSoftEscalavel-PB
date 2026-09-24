@@ -244,3 +244,7 @@ test('não permite lançar produto sem saldo no estoque', async () => {
 
   expect(screen.queryByRole('button', { name: /Adicionar Bolinho de bacalhau/i })).not.toBeInTheDocument();
 });
+
+test('prova de detecção de falha no CI', () => {
+  expect(1).toBe(2);
+});
