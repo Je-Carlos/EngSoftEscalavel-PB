@@ -1,136 +1,49 @@
 # Pé Sujo
 
-Sistema de comanda aberta para um boteco brasileiro tradicional, com backend Spring Boot, microsserviço de estoque e frontend React.
+Sistema de comandas para atendimento de mesas. O frontend React chama o backend Spring Boot; o backend consulta o estoque por HTTP via Eureka. Remoções e cancelamentos geram eventos RabbitMQ por outbox, consumidos pelo estoque e pela auditoria.
 
-## Sobre o projeto
+## Componentes
 
-O Pé Sujo ajuda no atendimento de mesas em um pequeno bar. Pela interface, o atendente acompanha o salão, abre uma comanda para uma mesa livre, adiciona produtos consumidos, consulta o total e fecha a conta.
+| Componente | Responsabilidade | Porta interna |
+|---|---|---:|
+| `frontend` | Interface e proxy da API | 80 |
+| `backend` | Mesas, produtos, comandas e auditoria | 8080 |
+| `estoque-service` | Saldo, baixa e estorno | 8081 |
+| `service-registry` | Descoberta Eureka | 8761 |
+| PostgreSQL × 2 | Dados de atendimento e estoque | 5432 |
+| RabbitMQ | Distribuição de eventos | 5672 |
 
-A aplicação mantém o atendimento em camadas e separa o saldo de produtos no microsserviço de estoque. Remoções e cancelamentos publicam eventos RabbitMQ por outbox.
+`eventos-contratos` é uma biblioteca compartilhada, sem processo ou imagem própria. O fluxo e os contratos estão em [arquitetura](docs/arquitetura.md), [persistência](docs/persistencia.md) e [eventos](docs/eventos.md).
 
-## Arquitetura
+## Executar com Docker Compose
 
-A descrição da arquitetura, dos domínios, dos endpoints e dos diagramas está em [docs/arquitetura.md](docs/arquitetura.md). A configuração de banco e migrações está em [docs/persistencia.md](docs/persistencia.md). O fluxo de eventos, a consistência eventual e os cenários de demonstração estão em [docs/eventos.md](docs/eventos.md).
-
-## Tecnologias
-
-- Java 21
-- Spring Boot 4
-- Spring Web MVC
-- Spring Data JPA
-- Bean Validation
-- PostgreSQL 17
-- Flyway
-- Hibernate Envers
-- Maven
-- React
-- Vite
-- Vitest
-- Spring Cloud Netflix Eureka e OpenFeign
-- RabbitMQ e Spring AMQP
-
-## Estrutura do repositório
-
-```text
-Pb_BarPeSujo/
-  backend/
-  estoque-service/
-  service-registry/
-  eventos-contratos/
-  frontend/
-  docs/
-  README.md
-```
-
-## Funcionalidades
-
-- Cadastro, listagem, consulta, atualização e remoção de mesas.
-- Alteração de status de mesa.
-- Cadastro, listagem, consulta, atualização e remoção de produtos.
-- Controle de disponibilidade dos produtos.
-- Abertura de comanda para mesa livre.
-- Adição e remoção de itens da comanda.
-- Cálculo do total da comanda.
-- Fechamento e cancelamento de comanda.
-- Interface React integrada à API REST.
-
-## Regras principais
-
-- Uma mesa não pode ter mais de uma comanda aberta.
-- Uma comanda fechada ou cancelada não recebe novos itens.
-- Produto indisponível não pode ser lançado na comanda.
-- Comanda vazia não pode ser fechada.
-- Ao abrir uma comanda, a mesa fica `OCUPADA`.
-- Ao fechar ou cancelar uma comanda, a mesa volta para `LIVRE`.
-
-## Como executar
-
-### Serviços
-
-```bash
-cp .env.example .env
-docker compose up --build -d
-```
-
-O Compose inicia PostgreSQL, RabbitMQ Management, Eureka, backend e estoque. Troque as senhas em `.env` antes de usar fora do ambiente local. Para executar via Maven, use JDK 21 e `mvn -pl backend,estoque-service -am install -DskipTests` para instalar o contrato compartilhado; então inicie os serviços com as variáveis de `.env`.
-
-Endereços:
-
-- API: `http://localhost:8080`
-- Estoque: `http://localhost:8081`
-- Eureka: `http://localhost:8761`
-- RabbitMQ Management: `http://localhost:15672` (credenciais de `.env`)
-- PostgreSQL: `localhost:5432` (variáveis em `.env`)
-
-### Frontend
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-Endereço:
-
-- Frontend: `http://localhost:5173`
-
-## Testes
-
-Backend e estoque (JDK 21 e Docker ativos):
-
-```bash
-mvn test
-```
-
-Frontend:
-
-```bash
-cd frontend
-npm test -- --run
-```
-
-Build do frontend:
-
-```bash
-cd frontend
-npm run build
-```
-
-Validação integrada, após iniciar o Compose:
+Requisitos: Docker Desktop ou Docker Engine com Compose. Copie `.env.example` para `.env` e altere as senhas antes de iniciar:
 
 ```powershell
-./scripts/validar-integracao.ps1
-./scripts/validar-recuperacao.ps1
-./scripts/validar-dlq.ps1 -RabbitUser pesujo -RabbitPassword <senha-do-.env>
+Copy-Item .env.example .env
+docker compose up --build -d
+docker compose ps
 ```
 
-## Fluxo de demonstração
+Abra o frontend em `http://localhost:3000`. A API fica em `http://localhost:8080/api`, Eureka em `http://localhost:8761` e RabbitMQ Management em `http://localhost:15672`. As portas parametrizadas em `compose.yaml` podem ser alteradas em `.env`. Para parar sem apagar os volumes: `docker compose down`.
 
-1. Acessar o frontend.
-2. Visualizar as mesas do salão.
-3. Selecionar uma mesa livre para abrir uma comanda.
-4. Escolher produtos do cardápio.
-5. Adicionar itens à comanda.
-6. Conferir o total.
-7. Fechar a conta.
-8. Confirmar que a mesa voltou para `LIVRE`.
+## Testar
+
+Os testes Java usam JDK 21, Maven e Docker ativo para PostgreSQL descartável. Configure `JAVA_HOME` para o JDK 21 e confirme com `mvn.cmd -version`. O frontend usa Node.js 22. No PowerShell, invoque `npm.cmd` para não depender da política de scripts da máquina.
+
+```powershell
+mvn.cmd -B test
+npm.cmd --prefix frontend ci
+npm.cmd --prefix frontend test -- --run
+npm.cmd --prefix frontend run build
+```
+
+Com o Compose em execução, valide o fluxo entre backend, estoque e RabbitMQ:
+
+```powershell
+pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/validar-integracao.ps1
+```
+
+## Implantar e monitorar
+
+O [guia de operação](docs/operacao.md) contém build individual das imagens, implantação no Kubernetes do Docker Desktop, variáveis, Secrets, escala, recuperação de Pods, consulta de logs e traces, CI/CD e roteiro da demonstração. O workflow em `.github/workflows/ci.yml` executa testes e um fluxo integrado em pull requests e em `master`; após sucesso em `master`, publica quatro imagens com a tag `sha-<commit>` no GHCR.

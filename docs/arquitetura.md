@@ -144,28 +144,9 @@ Estoque, exposto pelo backend e encaminhado ao microsserviço:
 | GET | `/api/estoques` | Lista saldos por produto |
 | PUT | `/api/estoques/{produtoId}` | Define o saldo de um produto |
 
-## Como Executar
+## Implantação
 
-Backend:
-
-```bash
-cd backend
-./mvnw spring-boot:run
-```
-
-Frontend:
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-URLs locais:
-
-- Backend: `http://localhost:8080`
-- H2 Console: `http://localhost:8080/h2-console`
-- Frontend: `http://localhost:5173`
+O [guia de operação](operacao.md) descreve Compose, Kubernetes, variáveis, testes e monitoramento. O frontend em contêiner serve `/api` por proxy para o backend; no desenvolvimento, o Vite encaminha o mesmo caminho para `localhost:8080`.
 
 ## Diagrama de Componentes
 
