@@ -5,6 +5,8 @@ import com.br.infnet.pesujo.estoque.dto.ItemMovimentacaoRequest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -14,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class EstornoEventoListener {
+    private static final Logger log = LoggerFactory.getLogger(EstornoEventoListener.class);
     private final JdbcTemplate jdbc;
     private final ObjectMapper mapper;
     private final EstoqueService estoque;
@@ -34,12 +37,19 @@ public class EstornoEventoListener {
             throw new IllegalArgumentException("Evento de estorno inválido");
         }
         if (jdbc.update("insert into eventos_processados (event_id) values (?) on conflict do nothing", evento.eventId()) == 0) {
+            log.atInfo().addKeyValue("eventId", evento.eventId()).log("Evento duplicado ignorado");
             return;
         }
         if (!evento.itens().isEmpty()) {
-            estoque.repor(evento.itens().stream()
-                    .map(item -> new ItemMovimentacaoRequest(item.produtoId(), item.quantidade())).toList());
+            try {
+                estoque.repor(evento.itens().stream()
+                        .map(item -> new ItemMovimentacaoRequest(item.produtoId(), item.quantidade())).toList());
+            } catch (RuntimeException e) {
+                log.atError().addKeyValue("eventId", evento.eventId()).setCause(e).log("Falha no estorno");
+                throw e;
+            }
         }
+        log.atInfo().addKeyValue("eventId", evento.eventId()).log("Estorno aplicado");
     }
 
     @Component

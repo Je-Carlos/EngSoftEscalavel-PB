@@ -16,3 +16,8 @@ app:
   eventos:
     consumidores:
       enabled: false
+
+logging:
+  structured:
+    format:
+      console: ecs

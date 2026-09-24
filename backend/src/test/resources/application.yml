@@ -19,3 +19,8 @@ app:
       enabled: false
     publicador:
       enabled: false
+
+logging:
+  structured:
+    format:
+      console: ecs
