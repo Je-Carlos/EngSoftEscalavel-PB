@@ -161,8 +161,8 @@ spec:
           volumeMounts:
             - {name: data, mountPath: /var/lib/rabbitmq}
           readinessProbe:
-            exec:
-              command: [rabbitmq-diagnostics, -q, ping]
+            tcpSocket:
+              port: 5672
             periodSeconds: 10
             timeoutSeconds: 5
           resources:
