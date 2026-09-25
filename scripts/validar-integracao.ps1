@@ -1,5 +1,7 @@
 $ErrorActionPreference = 'Stop'
 $api = 'http://localhost:8080/api'
+$frontendPort = if ($env:FRONTEND_PORT) { $env:FRONTEND_PORT } else { '3000' }
+$frontend = "http://localhost:$frontendPort"
 
 $limiteInicio = (Get-Date).AddSeconds(60)
 do {
@@ -12,6 +14,15 @@ do {
     }
 } while ((Get-Date) -lt $limiteInicio)
 if (-not $estoquesProntos) { throw 'Backend ainda não consegue acessar o estoque.' }
+
+$mesasPeloFrontend = Invoke-WebRequest "$frontend/api/mesas" -Headers @{ Origin = $frontend } -UseBasicParsing
+if ($mesasPeloFrontend.StatusCode -ne 200) { throw 'Frontend não consegue acessar a API com a própria origem.' }
+try {
+    Invoke-WebRequest "$frontend/api/comandas/abrir" -Method Post -ContentType 'application/json' -Headers @{ Origin = $frontend } -Body '{"mesaId":-1}' -UseBasicParsing | Out-Null
+    throw 'Uma mesa inexistente foi aceita pela API.'
+} catch {
+    if ([int]$_.Exception.Response.StatusCode -ne 404) { throw }
+}
 
 $produto = @((Invoke-RestMethod "$api/produtos")) | Select-Object -First 1
 $mesa = @((Invoke-RestMethod "$api/mesas")) | Where-Object status -eq 'LIVRE' | Select-Object -First 1
