@@ -8,12 +8,16 @@ import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @SpringBootTest
+@ExtendWith(OutputCaptureExtension.class)
 class EstornoEventoIntegrationTest {
     @Autowired EstoqueService estoque;
     @Autowired EstornoEventoListener listener;
@@ -21,7 +25,7 @@ class EstornoEventoIntegrationTest {
     @Autowired JdbcTemplate jdbc;
 
     @Test
-    void entregaDuplicadaEstornaApenasUmaVez() throws Exception {
+    void entregaDuplicadaEstornaApenasUmaVez(CapturedOutput output) throws Exception {
         estoque.definirSaldo(901L, 0);
         UUID id = UUID.randomUUID();
         byte[] payload = mapper.writeValueAsBytes(new ComandaEvento(id, ComandaEvento.ITEM_REMOVIDO,
@@ -33,6 +37,8 @@ class EstornoEventoIntegrationTest {
         assertThat(estoque.buscarPorProduto(901L).quantidade()).isEqualTo(2);
         assertThat(jdbc.queryForObject("select count(*) from eventos_processados where event_id = ?", Integer.class, id))
                 .isEqualTo(1);
+        assertThat(output).contains("Estorno aplicado").contains("Evento duplicado ignorado")
+                .contains("\"eventId\":\"" + id + "\"");
     }
 
     @Test

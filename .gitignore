@@ -6,6 +6,9 @@ eventos-contratos/target/
 backend/.mvn/wrapper/maven-wrapper.jar
 .worktrees/
 .env
+.env.*
+!.env.example
+.maven-repo/
 frontend/node_modules/
 frontend/dist/
 frontend/.vite/

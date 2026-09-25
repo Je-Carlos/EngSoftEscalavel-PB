@@ -69,7 +69,7 @@ const estoques = [
 
 function mockApi() {
   return vi.spyOn(globalThis, 'fetch').mockImplementation(async (url, options = {}) => {
-    const path = String(url).replace('http://localhost:8080/api', '');
+    const path = String(url).replace('/api', '');
 
     if (path === '/mesas') {
       return Response.json(mesas);
@@ -155,7 +155,7 @@ test('abre mesa livre e seleciona a nova comanda', async () => {
 
   await waitFor(() => {
     expect(fetchMock).toHaveBeenCalledWith(
-      'http://localhost:8080/api/comandas/abrir',
+      '/api/comandas/abrir',
       expect.objectContaining({
         method: 'POST',
         body: JSON.stringify({ mesaId: 1 }),
@@ -178,7 +178,7 @@ test('adiciona, remove e fecha itens pela comanda lateral', async () => {
 
   await waitFor(() => {
     expect(fetchMock).toHaveBeenCalledWith(
-      'http://localhost:8080/api/comandas/20/itens',
+      '/api/comandas/20/itens',
       expect.objectContaining({
         method: 'POST',
         body: JSON.stringify({ produtoId: 11, quantidade: 1 }),
@@ -191,7 +191,7 @@ test('adiciona, remove e fecha itens pela comanda lateral', async () => {
 
   await waitFor(() => {
     expect(fetchMock).toHaveBeenCalledWith(
-      'http://localhost:8080/api/comandas/20/itens/30',
+      '/api/comandas/20/itens/30',
       expect.objectContaining({ method: 'DELETE' }),
     );
   });
@@ -200,7 +200,7 @@ test('adiciona, remove e fecha itens pela comanda lateral', async () => {
 
   await waitFor(() => {
     expect(fetchMock).toHaveBeenCalledWith(
-      'http://localhost:8080/api/comandas/20/fechar',
+      '/api/comandas/20/fechar',
       expect.objectContaining({ method: 'PATCH' }),
     );
   });
@@ -219,7 +219,7 @@ test('mantem o cadastro de produto como fluxo secundario', async () => {
 
   await waitFor(() => {
     expect(fetchMock).toHaveBeenCalledWith(
-      'http://localhost:8080/api/produtos',
+      '/api/produtos',
       expect.objectContaining({
         method: 'POST',
         body: JSON.stringify({

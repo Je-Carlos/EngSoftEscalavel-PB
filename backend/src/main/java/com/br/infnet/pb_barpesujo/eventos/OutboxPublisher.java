@@ -49,8 +49,10 @@ public class OutboxPublisher {
                         throw new IllegalStateException("Broker recusou ou não roteou evento " + pendente.id());
                     }
                     jdbc.update("update eventos_outbox set published_at = now() where event_id = ?", pendente.id());
+                    log.atInfo().addKeyValue("eventId", pendente.id()).log("Evento publicado");
                 } catch (Exception e) {
-                    log.warn("Publicação pendente para eventId={}", pendente.id(), e);
+                    log.atWarn().addKeyValue("eventId", pendente.id()).setCause(e)
+                            .log("Publicação pendente");
                 }
             }
         });

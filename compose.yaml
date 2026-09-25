@@ -81,6 +81,14 @@ services:
     ports:
       - "8080:8080"
 
+  frontend:
+    build:
+      context: ./frontend
+    depends_on:
+      - backend
+    ports:
+      - "${FRONTEND_PORT:-3000}:80"
+
   estoque-service:
     build:
       context: .

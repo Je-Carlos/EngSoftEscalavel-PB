@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pesujo-config
+  namespace: pesujo
+data:
+  POSTGRES_HOST: postgres
+  POSTGRES_PORT: "5432"
+  ESTOQUE_POSTGRES_HOST: postgres-estoque
+  ESTOQUE_POSTGRES_PORT: "5432"
+  RABBITMQ_HOST: rabbitmq
+  RABBITMQ_PORT: "5672"
+  EUREKA_DEFAULT_ZONE: http://service-registry:8761/eureka/
+  EUREKA_INSTANCE_PREFER_IP_ADDRESS: "true"
+  OTEL_EXPORTER_OTLP_ENDPOINT: http://tempo:4318
+  OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
